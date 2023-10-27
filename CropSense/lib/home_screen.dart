@@ -19,42 +19,52 @@ class _HomeScreenState extends State<HomeScreen> {
   bool open = false;
   List<String> results = [];
   XFile? selectedImage;
-  String baseUrl = 'http://10.0.2.2:5001';
+  String baseUrl = 'http://10.0.2.2:5000/predict';
   String chatGptBackendAPI = 'http://10.0.2.2:3000/';
   String chatGptResponse = '';
 
+  final picker = ImagePicker();
+  File? _image;
+
   // Method to capture a photo from the camera
   Future<void> capturePhotoFromCamera() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      // You can use the pickedFile.path to display or upload the image
-      // For example: File imageFile = File(pickedFile.path);
       setState(() {
+        _image = File(pickedFile.path);
         selectedImage = pickedFile;
       });
-      pickAndUploadImage();
+      uploadImage(pickedFile.path);
     }
   }
 
   // Method to upload a photo
   Future<void> uploadPhotoFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-
-      // You can use the pickedFile.path to display or upload the image
-      // For example: File imageFile = File(pickedFile.path);
       setState(() {
+        _image = File(pickedFile.path);
         selectedImage = pickedFile;
       });
-      print(selectedImage!.path);
-      await predictDisease();
-      await sendChatGPT();
+      uploadImage(pickedFile.path);
     }
   }
+
+  Future uploadImage(String filePath) async {
+    var uri = Uri.parse(baseUrl);
+    var request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      print('Server Response: ${response.body}');
+      print('Image uploaded successfully');
+    } else {
+      print('Failed to upload image');
+    }
+  }
+
 
   Future<void> pickAndUploadImage() async {
 

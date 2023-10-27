@@ -34,35 +34,77 @@ connectDB();
 // Routes
 app.use('/', router);
 
+// app.post("/", async (req, res) => {
+//     try {
+//         const { prompt } = req.body;
+//         const modelId = "gpt-3.5-turbo";
+//         const promptText = `${prompt}\n\nResponse:`;
+
+//         // Restore the previous context
+//         for (const [inputText, responseText] of conversationContext) {
+//             currentMessages.push({ role: "user", content: inputText });
+//             currentMessages.push({ role: "assistant", content: responseText });
+//         }
+
+//         // Stores the new message
+//         currentMessages.push({ role: "user", content: promptText });
+
+//         const result = await openai.createChatCompletion({
+//         model: modelId,
+//         messages: currentMessages,
+//         });
+
+//         const responseText = result.data.choices.shift().message.content;
+//         conversationContext.push([promptText, responseText]);
+//         res.send({ response: responseText });
+
+//     } catch (error) {
+//         console.error("Error in POST request:", error);
+//         res.status(400).send({ error: "Bad request" });
+//     }
+// });
+
 app.post("/", async (req, res) => {
     try {
-        const { prompt } = req.body;
-        const modelId = "gpt-3.5-turbo";
-        const promptText = `${prompt}\n\nResponse:`;
+      // Assuming the filename is sent in the request body
+      const { image, filename } = req.body;
 
-        // Restore the previous context
-        for (const [inputText, responseText] of conversationContext) {
-            currentMessages.push({ role: "user", content: inputText });
-            currentMessages.push({ role: "assistant", content: responseText });
-        }
+      var realFile = Buffer.from(image,"base64");
 
-        // Stores the new message
-        currentMessages.push({ role: "user", content: promptText });
+      console.log(realFile)
 
-        const result = await openai.createChatCompletion({
-        model: modelId,
-        messages: currentMessages,
-        });
-
-        const responseText = result.data.choices.shift().message.content;
-        conversationContext.push([promptText, responseText]);
-        res.send({ response: responseText });
-
+      if (!filename) {
+        return res.status(400).json({ error: "Filename is missing from the request body" });
+      }
+  
+      // Read the file from the provided filename
+    //   const data = fs.readFileSync(filename);
+        fs.writeFileSync(filename, realFile);
+  
+      // Replace {API_TOKEN} with your actual API token
+      const API_TOKEN = "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";
+  
+      // Make the POST request to the Hugging Face API
+      const response = await fetch("https://api-inference.huggingface.co/models/yusuf802/Leaf-Disease-Predictor", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: data.toString() }), // Convert the data to a string
+      });
+  
+      if (response.status !== 200) {
+        return res.status(response.status).json({ error: "Failed to get a valid response from the API" });
+      }
+  
+      const result = await response.json();
+      return res.json(result);
     } catch (error) {
-        console.error("Error in POST request:", error);
-        res.status(400).send({ error: "Bad request" });
+      console.error(error);
+      return res.status(500).json({ error: "Internal server error" });
     }
-});
+  });
 
 app.listen(port, () => {
     console.log(`chat-gpt API testing app listening at http://localhost:${port})`)
