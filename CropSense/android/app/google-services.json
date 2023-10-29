@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824538947513",
+    "project_id": "cropsense-d12de",
+    "storage_bucket": "cropsense-d12de.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824538947513:android:84352f3f1e97f03c8ba068",
+        "android_client_info": {
+          "package_name": "com.example.cropsense"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa4IK7TOLUG6z5HU2mtw0CH_GhkvwINSo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,11 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:chat_bubbles/bubbles/bubble_normal.dart';
 import 'package:chat_bubbles/bubbles/bubble_normal_image.dart';
+import 'package:cropsense/history.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as Path;
 
 import 'message.dart';
+
+enum MenuOption { diseaseList }
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -30,9 +37,10 @@ class _ChatScreenState extends State<ChatScreen> {
   String chatGptBackendAPI = 'http://10.0.2.2:3000/';
   String chatGptResponse = '';
   File? _image;
+  String? diseaseName;
 
   // Function to send a text message
-  void sendTextMsg() async {
+  void sendTextMsg(bool isSaved) async {
     try {
       String text = controller.text;
       if (text.isNotEmpty) {
@@ -56,6 +64,10 @@ class _ChatScreenState extends State<ChatScreen> {
             isTyping = false;
             msgs.insert(0, Message(false, text: json["response"].toString().trimLeft()));
           });
+          // save in the DB if it's a chat gpt generated response
+          if(isSaved) {
+            await saveDiseaseDetails(diseaseName!, json["response"].toString(), _image!);
+          }
         } else {
           print('Failed to send text message. Status code: ${response.statusCode}');
         }
@@ -75,20 +87,21 @@ class _ChatScreenState extends State<ChatScreen> {
         isTyping = true;
       });
 
-      // Here you can add your logic to process the image and get a response
-      // For example, you might want to upload the image to a server, run it through a model, etc.
       String disease = await predictDisease(imagePath);
-      // Simulate a response for now
-      // await Future.delayed(Duration(seconds: 2));
       setState(() {
+        diseaseName = disease;
         isTyping = false;
         msgs.insert(0, Message(false, text: 'predicted leaf disease is: ${disease}'));
       });
 
       controller.text = 'list out separately the details, symptoms, recommended treatments, and preventive measures of ${disease}';
-      sendTextMsg();
+      sendTextMsg(true);
 
     } catch (e) {
+      setState(() {
+        isTyping = false;
+        msgs.insert(0, Message(false, text: 'Error occurred: ${e}'));
+      });
       print('Failed to send image message. Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Some error occurred, please try again!")));
@@ -143,20 +156,61 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
 
-  // Main function to handle sending messages
-  // void sendMsg({String? text, String? imagePath}) {
-  //   if (text != null) {
-  //     sendTextMsg(text);
-  //   } else if (imagePath != null) {
-  //     sendImageMsg(imagePath);
-  //   }
-  // }
+  Future<void> saveDiseaseDetails(String diseaseName, String diseaseInfo, File imageFile) async {
+    try {
+      // Initialize Firebase Storage
+      FirebaseStorage storage = FirebaseStorage.instance;
+      String fileName = Path.basename(imageFile.path);
+      Reference ref = storage.ref().child('uploads/$fileName');
+
+      // Upload the image to Firebase Storage
+      UploadTask uploadTask = ref.putFile(imageFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String imageUrl = await taskSnapshot.ref.getDownloadURL();
+      print(imageUrl);
+
+      // Save the details in Firestore
+      CollectionReference diseases = FirebaseFirestore.instance.collection('diseases');
+      await diseases.add({
+        'diseaseName': diseaseName,
+        'diseaseInfo': diseaseInfo,
+        'imageUrl': imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      print('Disease details saved successfully!');
+    } catch (e) {
+      print('An error occurred while saving disease details: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("CropSense"),
+        actions: <Widget>[
+          PopupMenuButton<MenuOption>(
+            onSelected: (MenuOption result) {
+              switch (result) {
+                case MenuOption.diseaseList:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => HistoryScreen()),
+                  );
+                  break;
+              // Add other cases for different menu options as needed
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<MenuOption>>[
+              const PopupMenuItem<MenuOption>(
+                value: MenuOption.diseaseList,
+                child: Text('Disease List'),
+              ),
+              // Add other menu items here
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -242,7 +296,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         controller: controller,
                         textCapitalization: TextCapitalization.sentences,
                         onSubmitted: (value) {
-                          sendTextMsg();
+                          sendTextMsg(false);
                         },
                         textInputAction: TextInputAction.send,
                         showCursor: true,
@@ -255,7 +309,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               InkWell(
                 onTap: () {
-                  sendTextMsg();
+                  sendTextMsg(false);
                 },
                 child: Container(
                   height: 40,
