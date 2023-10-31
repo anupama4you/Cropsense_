@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:chat_bubbles/bubbles/bubble_normal.dart';
 import 'package:chat_bubbles/bubbles/bubble_normal_image.dart';
+import 'package:cropsense/camera_screen.dart';
 import 'package:cropsense/history.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -62,14 +63,17 @@ class _ChatScreenState extends State<ChatScreen> {
           var json = jsonDecode(response.body);
           setState(() {
             isTyping = false;
-            msgs.insert(0, Message(false, text: json["response"].toString().trimLeft()));
+            msgs.insert(0,
+                Message(false, text: json["response"].toString().trimLeft()));
           });
           // save in the DB if it's a chat gpt generated response
-          if(isSaved) {
-            await saveDiseaseDetails(diseaseName!, json["response"].toString(), _image!);
+          if (isSaved) {
+            await saveDiseaseDetails(
+                diseaseName!, json["response"].toString(), _image!);
           }
         } else {
-          print('Failed to send text message. Status code: ${response.statusCode}');
+          print(
+              'Failed to send text message. Status code: ${response.statusCode}');
         }
       }
     } catch (e) {
@@ -91,12 +95,13 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         diseaseName = disease;
         isTyping = false;
-        msgs.insert(0, Message(false, text: 'predicted leaf disease is: ${disease}'));
+        msgs.insert(
+            0, Message(false, text: 'predicted leaf disease is: ${disease}'));
       });
 
-      controller.text = 'list out separately the details, symptoms, recommended treatments, and preventive measures of ${disease}';
+      controller.text =
+          'list out separately the details, symptoms, recommended treatments, and preventive measures of ${disease}';
       sendTextMsg(true);
-
     } catch (e) {
       setState(() {
         isTyping = false;
@@ -110,7 +115,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Method to capture a photo from the camera
   Future<void> capturePhotoFromCamera() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -122,7 +128,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Method to upload a photo
   Future<void> uploadPhotoFromGallery() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -155,8 +162,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-
-  Future<void> saveDiseaseDetails(String diseaseName, String diseaseInfo, File imageFile) async {
+  Future<void> saveDiseaseDetails(
+      String diseaseName, String diseaseInfo, File imageFile) async {
     try {
       // Initialize Firebase Storage
       FirebaseStorage storage = FirebaseStorage.instance;
@@ -170,7 +177,8 @@ class _ChatScreenState extends State<ChatScreen> {
       print(imageUrl);
 
       // Save the details in Firestore
-      CollectionReference diseases = FirebaseFirestore.instance.collection('diseases');
+      CollectionReference diseases =
+          FirebaseFirestore.instance.collection('diseases');
       await diseases.add({
         'diseaseName': diseaseName,
         'diseaseInfo': diseaseInfo,
@@ -199,7 +207,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     MaterialPageRoute(builder: (context) => HistoryScreen()),
                   );
                   break;
-              // Add other cases for different menu options as needed
+                // Add other cases for different menu options as needed
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<MenuOption>>[
@@ -230,6 +238,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 label: Text('Gallery'),
                 onPressed: uploadPhotoFromGallery,
               ),
+              SizedBox(width: 20),
+              ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const CameraView(), // Use the correct route for CameraScreen
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.scanner_rounded),
+                  label: const Text('Scan'))
             ],
           ),
           const SizedBox(
@@ -243,39 +264,38 @@ class _ChatScreenState extends State<ChatScreen> {
                 reverse: true,
                 itemBuilder: (context, index) {
                   return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: isTyping && index == 0
-                          ? Column(
-                        children: [
-                          BubbleNormal(
-                            text: msgs[0].text ?? 'Uploading image',
-                            isSender: true,
-                            color: Colors.blue.shade100,
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(left: 16, top: 4),
-                            child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text("Typing...")),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: isTyping && index == 0
+                        ? Column(
+                            children: [
+                              BubbleNormal(
+                                text: msgs[0].text ?? 'Uploading image',
+                                isSender: true,
+                                color: Colors.blue.shade100,
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.only(left: 16, top: 4),
+                                child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text("Typing...")),
+                              )
+                            ],
                           )
-                        ],
-                      )
-                          : msgs[index].imagePath != null
-                          ?  BubbleNormalImage(
+                        : msgs[index].imagePath != null
+                            ? BubbleNormalImage(
                                 id: 'id001',
                                 image: Image.file(File(msgs[index].imagePath!)),
                                 color: Colors.blue.shade100,
                                 tail: true,
                                 delivered: true,
                               )
-                          : BubbleNormal(
-                        text: msgs[index].text ?? 'Text is unavailable',
-                        isSender: msgs[index].isSender,
-                        color: msgs[index].isSender
-                            ? Colors.blue.shade100
-                            : Colors.grey.shade200,
-                      ),
-
+                            : BubbleNormal(
+                                text: msgs[index].text ?? 'Text is unavailable',
+                                isSender: msgs[index].isSender,
+                                color: msgs[index].isSender
+                                    ? Colors.blue.shade100
+                                    : Colors.grey.shade200,
+                              ),
                   );
                 }),
           ),
