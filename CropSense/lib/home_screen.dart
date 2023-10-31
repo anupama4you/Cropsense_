@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:cropsense/camera_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -28,7 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Method to capture a photo from the camera
   Future<void> capturePhotoFromCamera() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -40,7 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Method to upload a photo
   Future<void> uploadPhotoFromGallery() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -65,26 +68,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   Future<void> pickAndUploadImage() async {
-
     File imageFile = File(selectedImage!.path);
 
     try {
       var request = http.MultipartRequest(
-        'POST', Uri.parse(baseUrl),
-
+        'POST',
+        Uri.parse(baseUrl),
       );
-      Map<String,String> headers={
-        "Content-type": "multipart/form-data"
-      };
+      Map<String, String> headers = {"Content-type": "multipart/form-data"};
       request.files.add(
         http.MultipartFile(
           'file',
           imageFile.readAsBytes().asStream(),
           imageFile.lengthSync(),
           filename: 'PotatoEarlyBlight2.JPG',
-          contentType: MediaType('image','jpeg'),
+          contentType: MediaType('image', 'jpeg'),
         ),
       );
       request.headers.addAll(headers);
@@ -93,9 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
       //   "email":"test@gmail.com",
       //   "id":"12345"
       // });
-      print("request: "+request.toString());
+      print("request: " + request.toString());
       var res = await request.send();
-      print("This is response:"+res.toString());
+      print("This is response:" + res.toString());
     } catch (e) {
       // Handle network or request error
       print('Error: $e');
@@ -103,7 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> predictDisease() async {
-
     Uint8List imageBytes = await selectedImage!.readAsBytes();
     String imageBase64 = base64Encode(imageBytes);
 
@@ -143,7 +141,10 @@ class _HomeScreenState extends State<HomeScreen> {
         headers: <String, String>{
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'prompt': 'list out separately the details, symptoms, recommended treatments, and preventive measures of ${results[0]}'}),
+        body: jsonEncode({
+          'prompt':
+              'list out separately the details, symptoms, recommended treatments, and preventive measures of ${results[0]}'
+        }),
       );
 
       if (response.statusCode == 200) {
@@ -170,13 +171,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('CropSense'),
-
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.add_alert),
@@ -219,7 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   await capturePhotoFromCamera(); // Call the method for capturing a photo from the camera
                 },
                 child: Text('Capture Photo'),
-
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -227,31 +225,63 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
                 child: Text('Upload from Gallery'),
               ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CameraView(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.scanner_rounded, size: 50),
+                label: const Text(
+                  'Scan',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(15),
+                ),
+              ),
 
               // Display the selected image if available
               if (selectedImage != null)
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Image.file(File(selectedImage!.path), width: 200, height: 200),
+                  child: Image.file(File(selectedImage!.path),
+                      width: 200, height: 200),
                 ),
 
               if (loadingPrediction)
                 CircularProgressIndicator() // Loading indicator
               else if (results.isNotEmpty)
-                Column(children: [
-                  Text(
-                    'With high confidence the disease is: ${results[0].replaceAll("_", " ")}',
-                    style: TextStyle(fontSize: 14), // Adjust the font size (e.g., 18)
-                  ),
-                  Text('Plant: ${_plantController.text}', style: TextStyle(fontSize: 14),), // Adjust the font size
-                  Text('Remedy: ${_remedyController.text}', style: TextStyle(fontSize: 10),), // Adjust the font size
-                ],
+                Column(
+                  children: [
+                    Text(
+                      'With high confidence the disease is: ${results[0].replaceAll("_", " ")}',
+                      style: TextStyle(
+                          fontSize: 14), // Adjust the font size (e.g., 18)
+                    ),
+                    Text(
+                      'Plant: ${_plantController.text}',
+                      style: TextStyle(fontSize: 14),
+                    ), // Adjust the font size
+                    Text(
+                      'Remedy: ${_remedyController.text}',
+                      style: TextStyle(fontSize: 10),
+                    ), // Adjust the font size
+                  ],
                 ),
-              SizedBox(height: 10,),
-              if(loadingChatGpt)
+              SizedBox(
+                height: 10,
+              ),
+              if (loadingChatGpt)
                 CircularProgressIndicator()
-              else if(chatGptResponse != '')
-                Text('${chatGptResponse}', style: TextStyle(fontSize: 10),),
+              else if (chatGptResponse != '')
+                Text(
+                  '${chatGptResponse}',
+                  style: TextStyle(fontSize: 10),
+                ),
 
               ElevatedButton(
                 onPressed: () async {
@@ -260,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text('Save'),
               ),
               if (open)
-              // Success message
+                // Success message
                 AlertDialog(
                   title: Text('Information saved successfully!'),
                   actions: <Widget>[
