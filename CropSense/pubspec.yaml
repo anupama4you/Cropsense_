@@ -48,6 +48,7 @@ dependencies:
   get: ^4.6.6
   permission_handler: ^11.0.1
   flutter_tflite: ^1.0.1
+  animated_text_kit: ^4.2.2
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,7 @@ flutter:
   assets:
     - assets/models.tflite
     - assets/labels.txt
+    - assets/images/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

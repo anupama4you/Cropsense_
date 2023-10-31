@@ -25,13 +25,22 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      home: AuthenticationWrapper(),
-      debugShowCheckedModeBanner: false,
+    return StreamProvider<User?>.value(
+      initialData: FirebaseAuth.instance.currentUser,
+      value: context.read<AuthenticationProvider>().authState,
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          textTheme: GoogleFonts.latoTextTheme(
+            Theme.of(context).textTheme,
+          ),
+        ),
+        home: AuthenticationWrapper(),
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }

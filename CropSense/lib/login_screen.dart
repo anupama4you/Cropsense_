@@ -10,9 +10,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => AuthenticationProvider(FirebaseAuth.instance),
-      child: MaterialApp(
-        home: AuthenticationWrapper(),
+    child: MaterialApp(
+      home: Consumer<AuthenticationProvider>(
+        builder: (context, authProvider, _) {
+          return StreamProvider<User?>.value(
+            initialData: authProvider.firebaseAuth.currentUser,
+            value: authProvider.authState,
+            child: AuthenticationWrapper(),
+        );
+      },
       ),
+    ),
     );
   }
 }
@@ -31,6 +39,11 @@ class AuthenticationProvider with ChangeNotifier {
     } catch (e) {
       print(e); // Handle the exception properly in a production app
     }
+  }
+
+  Future<void> signOut() async {
+    await firebaseAuth.signOut();
+    notifyListeners();
   }
 }
 
@@ -64,10 +77,11 @@ class LoginScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(height: 40),  // Space at the top
-              Image.network(
-                'https://cropsense.es/wp-content/uploads/2022/02/CropSense-Titulo.png',  // Replace with the URL of your image
-                width: 150,  // Adjust the size accordingly
-                height: 150,  // Adjust the size accordingly
+            Image.asset(
+                "assets/images/cropsense_logo.png",
+                fit: BoxFit.fitWidth,
+                width: 240,
+                height: 240
               ),
               SizedBox(height: 40),
               TextField(

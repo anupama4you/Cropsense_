@@ -4,6 +4,7 @@ import 'package:chat_bubbles/bubbles/bubble_normal.dart';
 import 'package:chat_bubbles/bubbles/bubble_normal_image.dart';
 import 'package:cropsense/camera_screen.dart';
 import 'package:cropsense/history.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -11,10 +12,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as Path;
+import 'package:provider/provider.dart';
 
+import 'login_screen.dart';
 import 'message.dart';
 
-enum MenuOption { diseaseList }
+enum MenuOption { diseaseList, logout }
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -39,14 +42,59 @@ class _ChatScreenState extends State<ChatScreen> {
   String chatGptResponse = '';
   File? _image;
   String? diseaseName;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    initChat();
+  }
+
+  Future<void> initChat() async {
+    try {
+      setState(() {
+        isTyping = true;
+        isLoading = true;
+      });
+      final url = Uri.parse(chatGptBackendAPI);
+      final response = await http.post(
+        url,
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'prompt': 'Hi! how can you help me with ?'}),
+      );
+
+      if (response.statusCode == 200) {
+        var json = jsonDecode(response.body);
+        setState(() {
+          isTyping = false;
+          isLoading = false;
+          msgs.insert(0,
+              Message(false, text: json["response"].toString().trimLeft()));
+        });
+      } else {
+        print('Failed to initialize chat. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Failed to initialize chat. Error: $e');
+    }
+  }
 
   // Function to send a text message
   void sendTextMsg(bool isSaved) async {
     try {
-      String text = controller.text;
+      String text = "";
+      if(isSaved) {
+        text = 'list out separately the details, symptoms, recommended treatments, and preventive measures of ${diseaseName}';
+      } else {
+        text = controller.text;
+      }
       if (text.isNotEmpty) {
         setState(() {
-          msgs.insert(0, Message(true, text: text));
+          if(!isSaved) {
+            msgs.insert(0, Message(true, text: text));
+          }
           isTyping = true;
         });
 
@@ -96,11 +144,11 @@ class _ChatScreenState extends State<ChatScreen> {
         diseaseName = disease;
         isTyping = false;
         msgs.insert(
-            0, Message(false, text: 'predicted leaf disease is: ${disease}'));
+            0, Message(false, text: 'I predict leaf disease is: $disease'));
       });
 
-      controller.text =
-          'list out separately the details, symptoms, recommended treatments, and preventive measures of ${disease}';
+      // controller.text =
+      //     'list out separately the details, symptoms, recommended treatments, and preventive measures of ${disease}';
       sendTextMsg(true);
     } catch (e) {
       setState(() {
@@ -199,13 +247,15 @@ class _ChatScreenState extends State<ChatScreen> {
         title: const Text("CropSense"),
         actions: <Widget>[
           PopupMenuButton<MenuOption>(
-            onSelected: (MenuOption result) {
+            onSelected: (MenuOption result) async {
               switch (result) {
                 case MenuOption.diseaseList:
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => HistoryScreen()),
                   );
+                case MenuOption.logout:
+                  await Provider.of<AuthenticationProvider>(context, listen: false).signOut();
                   break;
                 // Add other cases for different menu options as needed
               }
@@ -213,7 +263,11 @@ class _ChatScreenState extends State<ChatScreen> {
             itemBuilder: (BuildContext context) => <PopupMenuEntry<MenuOption>>[
               const PopupMenuItem<MenuOption>(
                 value: MenuOption.diseaseList,
-                child: Text('Disease List'),
+                child: Text('History'),
+              ),
+              const PopupMenuItem<MenuOption>(
+                value: MenuOption.logout,
+                child: Text('Logout'),
               ),
               // Add other menu items here
             ],
@@ -222,6 +276,8 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          isTyping
+              ? const LinearProgressIndicator():
           const SizedBox(height: 8),
           // Image buttons
           Row(
@@ -257,7 +313,9 @@ class _ChatScreenState extends State<ChatScreen> {
             height: 8,
           ),
           Expanded(
-            child: ListView.builder(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator()) // Show loader when chat is initializing
+                : ListView.builder(
                 controller: scrollController,
                 itemCount: msgs.length,
                 shrinkWrap: true,
