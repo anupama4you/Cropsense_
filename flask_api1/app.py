@@ -1,12 +1,10 @@
 import os
-import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
 from flask import Flask, request, render_template, jsonify
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
 from tensorflow.keras.applications.vgg19 import preprocess_input
-from tensorflow.keras.applications.vgg19 import decode_predictions
 from flask import Flask
 from flask_cors import CORS
 
@@ -20,7 +18,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.secret_key = "secret key"
 
 model = load_model('best_model.h5')
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -52,7 +49,7 @@ def predict():
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         pred = prediction(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return jsonify({"prediction": pred}), 200
+        return jsonify(pred), 200
 
 @app.route('/data')
 def get_time():

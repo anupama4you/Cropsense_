@@ -8,13 +8,10 @@ import fetch from "node-fetch"; // Import fetch
 import Replicate from "replicate";
 
 const configuration = new Configuration({
-    organization: "org-b3Y1ILtBwy8Bb77EVwceDrf6",
-    apiKey: "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"
+    apiKey: "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"
 });
 
-const replicate = new Replicate({
-    auth: "r8_LYfRgooa3gNAGEfY36lxIlP3IWkFo7u0uuoaK",
-});
+
 
 const openai = new OpenAIApi(configuration);
 

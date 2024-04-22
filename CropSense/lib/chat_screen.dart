@@ -4,8 +4,7 @@ import 'package:chat_bubbles/bubbles/bubble_normal.dart';
 import 'package:chat_bubbles/bubbles/bubble_normal_image.dart';
 import 'package:cropsense/camera_screen.dart';
 import 'package:cropsense/history.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -38,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<String> results = [];
   XFile? selectedImage;
   String baseUrl = 'http://10.0.2.2:5000/predict';
+  String secondUrl = 'http://10.0.2.2:5001/predict';
   String chatGptBackendAPI = 'http://10.0.2.2:3000/';
   String chatGptResponse = '';
   File? _image;
@@ -70,8 +70,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           isTyping = false;
           isLoading = false;
-          msgs.insert(0,
-              Message(false, text: json["response"].toString().trimLeft()));
+          msgs.insert(
+              0, Message(false, text: json["response"].toString().trimLeft()));
         });
       } else {
         print('Failed to initialize chat. Status code: ${response.statusCode}');
@@ -85,14 +85,15 @@ class _ChatScreenState extends State<ChatScreen> {
   void sendTextMsg(bool isSaved) async {
     try {
       String text = "";
-      if(isSaved) {
-        text = 'list out separately the details, symptoms, recommended treatments, and preventive measures of ${diseaseName}';
+      if (isSaved) {
+        text =
+            'list out separately the details, symptoms, recommended treatments, and preventive measures of ${diseaseName}';
       } else {
         text = controller.text;
       }
       if (text.isNotEmpty) {
         setState(() {
-          if(!isSaved) {
+          if (!isSaved) {
             msgs.insert(0, Message(true, text: text));
           }
           isTyping = true;
@@ -255,7 +256,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     MaterialPageRoute(builder: (context) => HistoryScreen()),
                   );
                 case MenuOption.logout:
-                  await Provider.of<AuthenticationProvider>(context, listen: false).signOut();
+                  await Provider.of<AuthenticationProvider>(context,
+                          listen: false)
+                      .signOut();
                   break;
                 // Add other cases for different menu options as needed
               }
@@ -277,8 +280,8 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           isTyping
-              ? const LinearProgressIndicator():
-          const SizedBox(height: 8),
+              ? const LinearProgressIndicator()
+              : const SizedBox(height: 8),
           // Image buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -314,48 +317,52 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator()) // Show loader when chat is initializing
+                ? const Center(
+                    child:
+                        CircularProgressIndicator()) // Show loader when chat is initializing
                 : ListView.builder(
-                controller: scrollController,
-                itemCount: msgs.length,
-                shrinkWrap: true,
-                reverse: true,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: isTyping && index == 0
-                        ? Column(
-                            children: [
-                              BubbleNormal(
-                                text: msgs[0].text ?? 'Uploading image',
-                                isSender: true,
-                                color: Colors.blue.shade100,
-                              ),
-                              const Padding(
-                                padding: EdgeInsets.only(left: 16, top: 4),
-                                child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text("Typing...")),
+                    controller: scrollController,
+                    itemCount: msgs.length,
+                    shrinkWrap: true,
+                    reverse: true,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: isTyping && index == 0
+                            ? Column(
+                                children: [
+                                  BubbleNormal(
+                                    text: msgs[0].text ?? 'Uploading image',
+                                    isSender: true,
+                                    color: Colors.blue.shade100,
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 16, top: 4),
+                                    child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text("Typing...")),
+                                  )
+                                ],
                               )
-                            ],
-                          )
-                        : msgs[index].imagePath != null
-                            ? BubbleNormalImage(
-                                id: 'id001',
-                                image: Image.file(File(msgs[index].imagePath!)),
-                                color: Colors.blue.shade100,
-                                tail: true,
-                                delivered: true,
-                              )
-                            : BubbleNormal(
-                                text: msgs[index].text ?? 'Text is unavailable',
-                                isSender: msgs[index].isSender,
-                                color: msgs[index].isSender
-                                    ? Colors.blue.shade100
-                                    : Colors.grey.shade200,
-                              ),
-                  );
-                }),
+                            : msgs[index].imagePath != null
+                                ? BubbleNormalImage(
+                                    id: 'id001',
+                                    image: Image.file(
+                                        File(msgs[index].imagePath!)),
+                                    color: Colors.blue.shade100,
+                                    tail: true,
+                                    delivered: true,
+                                  )
+                                : BubbleNormal(
+                                    text: msgs[index].text ??
+                                        'Text is unavailable',
+                                    isSender: msgs[index].isSender,
+                                    color: msgs[index].isSender
+                                        ? Colors.blue.shade100
+                                        : Colors.grey.shade200,
+                                  ),
+                      );
+                    }),
           ),
           Row(
             children: [

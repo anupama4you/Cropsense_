@@ -1,4 +1,3 @@
-import 'package:cropsense/chat_screen.dart';
 import 'package:cropsense/home_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,11 +18,8 @@ void main() async {
   );
 }
 
-
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +34,10 @@ class MyApp extends StatelessWidget {
             Theme.of(context).textTheme,
           ),
         ),
-        home: AuthenticationWrapper(),
+        //home: AuthenticationWrapper(),
+        home: HomeScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );
   }
 }
-
