@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:cropsense/const.dart';
+
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,7 +18,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final openai = OpenAI.instance.build(
-    token: OPEN_AI_KEY,
+    token: dotenv.env['OPEN_AI_KEY'],
     baseOption: HttpSetup(),
     enableLog: true,
   );
