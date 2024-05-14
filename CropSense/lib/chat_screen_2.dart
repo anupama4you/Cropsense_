@@ -49,7 +49,7 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     // Create message history for GPT API request
-    List<Messages> _messageHistory = _messages
+    List<Messages> messageHistory = _messages
         .map((m) => m.user == _current
             ? Messages(role: Role.user, content: m.text)
             : Messages(role: Role.assistant, content: m.text))
@@ -58,7 +58,7 @@ class _ChatPageState extends State<ChatPage> {
     // Send a request to the GPT API
     final request = ChatCompleteText(
       model: Gpt4ChatModel(),
-      messages: _messageHistory,
+      messages: messageHistory,
       maxToken: maxTokens,
     );
 
@@ -112,14 +112,14 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       _messages.insert(0, m);
     });
-    List<Messages> _messageHistory = _messages
+    List<Messages> messageHistory = _messages
         .map((m) => m.user == _current
             ? Messages(role: Role.user, content: m.text)
             : Messages(role: Role.assistant, content: m.text))
         .toList();
     final request = ChatCompleteText(
         model: GptTurbo0301ChatModel(),
-        messages: _messageHistory,
+        messages: messageHistory,
         maxToken: 325);
     final response = await openai.onChatCompletion(request: request);
     for (var element in response!.choices) {
