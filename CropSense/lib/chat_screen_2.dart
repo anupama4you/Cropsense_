@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
