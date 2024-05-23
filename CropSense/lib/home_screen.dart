@@ -1,5 +1,8 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:cropsense/photoDisplay.dart';
+import 'package:cropsense/splash.dart';
+import 'package:flutter_svg/svg.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
@@ -239,12 +242,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'CropSense',
-          style: TextStyle(color: Colors.black),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset('assets/images/AppBar-logo.svg', height: 24),
+            const SizedBox(
+              width: 8.0,
+            ),
+            const Text(
+              "CropSense",
+              style: TextStyle(color: Colors.black),
+            )
+          ],
         ),
         backgroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: SafeArea(
         top: true,
@@ -275,7 +286,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             AsyncSnapshot<void> snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return const CircularProgressIndicator(); // Display a loading indicator while waiting for the API call to complete
+                            return SingleChildScrollView(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: MediaQuery.of(context)
+                                      .size
+                                      .height, // Ensure it takes at least the height of the screen
+                                ),
+                                child: IntrinsicHeight(
+                                  child: Splash(),
+                                ),
+                              ),
+                            ); // Display a loading indicator while waiting for the API call to complete
                           } else if (snapshot.hasError) {
                             return Text('Error: ${snapshot.error}');
                           } else {
@@ -578,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const Opacity(
                                         opacity: 0,
                                         child: SizedBox(
-                                          height: 43,
+                                          height: 20,
                                         )),
                                     Material(
                                       color: Colors.transparent,
@@ -676,31 +698,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                             },
                                           );
                                         },
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.upload_outlined,
-                                              color: fontColor,
-                                            ),
-                                            const Opacity(
-                                              opacity: 0,
-                                              child: SizedBox(
-                                                height: 20,
-                                                child: VerticalDivider(
-                                                    thickness: 0),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                              border: Border.all(
+                                                width: 1.0,
+                                                color: Colors.white30,
                                               ),
-                                            ),
-                                            Text(
-                                              "Photo",
-                                              style: TextStyle(
-                                                  fontFamily: "Readex Pro",
-                                                  letterSpacing: 0,
-                                                  color: fontColor),
-                                            ),
-                                          ],
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.max,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.upload_outlined,
+                                                color: fontColor,
+                                              ),
+                                              const Opacity(
+                                                opacity: 0,
+                                                child: SizedBox(
+                                                  height: 20,
+                                                  child: VerticalDivider(
+                                                      thickness: 0),
+                                                ),
+                                              ),
+                                              Text(
+                                                "Photo",
+                                                style: TextStyle(
+                                                    fontFamily: "Readex Pro",
+                                                    letterSpacing: 0,
+                                                    color: fontColor),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     )
