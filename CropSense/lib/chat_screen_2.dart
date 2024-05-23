@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,12 +53,12 @@ class _ChatPageState extends State<ChatPage> {
             ? Messages(role: Role.user, content: m.text)
             : Messages(role: Role.assistant, content: m.text))
         .toList();
-    int maxTokens = 150;
+
     // Send a request to the GPT API
     final request = ChatCompleteText(
-      model: Gpt4ChatModel(),
+      model: GptTurbo0301ChatModel(),
       messages: messageHistory,
-      maxToken: maxTokens,
+      maxToken: 325,
     );
 
     final response = await openai.onChatCompletion(request: request);
@@ -85,11 +85,12 @@ class _ChatPageState extends State<ChatPage> {
       onWillPop: _onBackpressed,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color.fromRGBO(0, 166, 126, 1),
+          backgroundColor: Colors.black,
           title: const Text(
             'CropSense-Chat',
             style: TextStyle(color: Colors.white),
           ),
+          centerTitle: true,
         ),
         body: DashChat(
           currentUser: _current,
@@ -102,6 +103,7 @@ class _ChatPageState extends State<ChatPage> {
             getChatResponse(m);
           },
           messages: _messages,
+          inputOptions: const InputOptions(sendOnEnter: true),
         ),
       ),
     );
@@ -111,11 +113,12 @@ class _ChatPageState extends State<ChatPage> {
     setState(() {
       _messages.insert(0, m);
     });
-    List<Messages> messageHistory = _messages
+    List<Messages> messageHistory = _messages.reversed
         .map((m) => m.user == _current
             ? Messages(role: Role.user, content: m.text)
             : Messages(role: Role.assistant, content: m.text))
         .toList();
+
     final request = ChatCompleteText(
         model: GptTurbo0301ChatModel(),
         messages: messageHistory,
@@ -145,14 +148,14 @@ class _ChatPageState extends State<ChatPage> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(false);
+              Navigator.of(context).pop(true);
             },
             child: Text('No'),
           ),
           TextButton(
             onPressed: () async {
               // Save chat logic goes here
-              await saveChatToLocalStorage();
+              await saveChatToLocalStorage(widget.prediction);
               Navigator.of(context).pop(true);
             },
             child: Text('Yes'),
@@ -166,15 +169,25 @@ class _ChatPageState extends State<ChatPage> {
     return result ?? false;
   }
 
-  Future<void> saveChatToLocalStorage() async {
+  Future<void> saveChatToLocalStorage(String heading) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    // Convert the chat messages to a format suitable for storage (e.g., JSON)
-    List<String> chatMessages = _messages
-        .map((message) => message.toJson())
-        .toList()
-        .map((json) => jsonEncode(json))
-        .toList();
-    // Save the chat messages to local storage
-    await prefs.setStringList('chatMessages', chatMessages);
+
+    // Load existing chat threads from local storage
+    String? chatJson = prefs.getString('AllMessages');
+    List<dynamic> allMessages = chatJson != null ? jsonDecode(chatJson) : [];
+
+    // Convert the list of ChatMessage objects to a list of maps
+    List<Map<String, dynamic>> chatMessagesMapList =
+        _messages.map((message) => message.toJson()).toList();
+
+    // Add the current chat thread to the list
+    Map<String, dynamic> chatThread = {
+      'heading': heading,
+      'messages': chatMessagesMapList,
+    };
+    allMessages.add(chatThread);
+
+    // Save the updated list of chat threads to local storage
+    await prefs.setString('AllMessages', jsonEncode(allMessages));
   }
 }

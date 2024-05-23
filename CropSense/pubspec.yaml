@@ -56,6 +56,7 @@ dependencies:
   flutter_dotenv: ^5.0.2
   geolocator: ^8.2.0
   geocoding: ^2.0.0
+  realm: ^1.6.1
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +78,7 @@ flutter:
     - assets/models.tflite
     - assets/labels.txt
     - assets/images/
+    - .env
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

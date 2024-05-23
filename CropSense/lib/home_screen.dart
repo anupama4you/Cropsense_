@@ -1,15 +1,13 @@
 import 'dart:io';
-import 'package:cropsense/chat_screen_2.dart';
 import 'package:cropsense/photoDisplay.dart';
-import 'package:cropsense/messages.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -20,41 +18,52 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? selectedImage;
   String baseUrl = 'http://10.0.2.2:5000/predict';
   String prediction = '';
-  var celTemp;
-  var fahTemp;
-  var tempPhoto;
-  var condition;
+  double celTemp = 0;
+  double fahTemp = 0;
+  var tempPhoto = '';
+  var condition = '';
   final fontColor = Colors.white;
   final picker = ImagePicker();
-  File? _image;
-  int _selectedIndex = 0;
+  bool _isMounted = false;
+
   String locationMessage = 'Loading...';
-  final int homePageIndex = 0;
-  final int messagesPageIndex = 1;
+
   @override
   void initState() {
     super.initState();
+    _isMounted = true;
     init();
   }
 
+  @override
+  void dispose() {
+    _isMounted = false;
+    super.dispose();
+  }
+
   void init() async {
-    if (await _checkLocationPermission()) {
-      var location = await getCurrentLocation();
-      //var address = await _getStateFromLatLng(location);
-      setState(() {
-        locationMessage = '${location.latitude},${location.longitude}';
-      });
-      setWeatherData();
-    } else {
-      setState(() {
-        locationMessage = 'Location permission not granted';
-      });
+    if (_isMounted) {
+      if (await _checkLocationPermission()) {
+        var location = await getCurrentLocation();
+        if (_isMounted) {
+          setState(() {
+            locationMessage = '${location.latitude},${location.longitude}';
+          });
+          setWeatherData();
+        }
+      } else {
+        if (_isMounted) {
+          setState(() {
+            locationMessage = 'Location permission not granted';
+          });
+        }
+      }
     }
   }
 
   Future<void> setWeatherData() async {
     var address = 'http://api.weatherapi.com/v1/current.json';
-    var key = "8d8f0b55cca2497ebe351305240605";
+    var key = dotenv.env['WEATHER_KEY'];
     var apiUrl = '$address?key=$key&q=$locationMessage';
     try {
       var response = await http.get(Uri.parse(apiUrl));
@@ -68,15 +77,13 @@ class _HomeScreenState extends State<HomeScreen> {
         fahTemp = weatherData['current']['temp_f'];
         tempPhoto = 'https:${weatherData['current']['condition']['icon']}';
         condition = weatherData['current']['condition']['text'];
-        print("${celTemp}, ${fahTemp}, ${tempPhoto},${condition}");
+
         // Update locationMessage with weather information
       } else {
         // Handle error response
-        print('Failed to fetch weather data: ${response.statusCode}');
       }
     } catch (e) {
       // Handle network errors
-      print('Error fetching weather data: $e');
     }
   }
 
@@ -97,81 +104,48 @@ class _HomeScreenState extends State<HomeScreen> {
         desiredAccuracy: LocationAccuracy.high);
   }
 
-// Inside _HomeScreenState class
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    if (index == messagesPageIndex) {
-      // Navigate to MessagesPage
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (context) =>
-                MessageDisplay()), // Replace MessagesPage with your actual MessagesPage widget
-      );
-    } else {
-      // Navigate to HomePage or perform any other action based on index
-      // You can handle the HomePage navigation here or perform other actions as needed
-    }
-  }
-
-  Future<void> capturePhotoFromCamera() async {
+  Future<void> capturePhotoFromCamera(BuildContext dialogContext) async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-        selectedImage = pickedFile;
-      });
-      // predictDisease(pickedFile.path);
-      uploadImage(pickedFile.path);
-
-      // Navigate to plantDisplay page
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PlantDisplay(
-            imagePath: pickedFile.path,
+      String prediction = await uploadImage(
+          pickedFile.path, context); // Pass context to uploadImage
+      if (prediction != 'null') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlantDisplay(
+              imagePath: pickedFile.path,
+              prediction: prediction,
+            ),
           ),
-        ),
-      );
+        );
+      } // Ensure async call completes
     }
   }
 
-  Future<void> checkStoredChatMessages() async {
-    // Get an instance of SharedPreferences
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    // Retrieve the list of JSON strings from local storage
-    List<String>? chatMessagesJson = prefs.getStringList('chatMessages');
-
-    if (chatMessagesJson == null) {
-      print('No chat messages found in storage.');
-    } else {
-      print('Stored chat messages:');
-      // Print each stored chat message JSON string
-      for (String jsonStr in chatMessagesJson) {
-        print(jsonStr);
-      }
-    }
-  }
-
-  Future<void> uploadPhotoFromGallery() async {
+  Future<void> uploadPhotoFromGallery(BuildContext dialogContext) async {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _image = File(pickedFile.path);
-        selectedImage = pickedFile;
-      });
-      uploadImage(pickedFile.path);
+      Navigator.of(dialogContext).pop(); // Dismiss the dialog
+      String prediction = await uploadImage(
+          pickedFile.path, context); // Pass context to uploadImage
+      if (prediction != 'null') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlantDisplay(
+              imagePath: pickedFile.path,
+              prediction: prediction,
+            ),
+          ),
+        );
+      } // Ensure async call completes
     }
   }
 
-  Future uploadImage(String filePath) async {
+  Future<String> uploadImage(String filePath, BuildContext context) async {
     var uri = Uri.parse(baseUrl);
     var request = http.MultipartRequest('POST', uri);
     request.files.add(await http.MultipartFile.fromPath('file', filePath));
@@ -181,25 +155,40 @@ class _HomeScreenState extends State<HomeScreen> {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        setState(() {
-          prediction = response.body.replaceAll('_', ' ');
-        });
-        print(prediction);
-        return response.body.replaceAll('_', ' ');
+        String prediction =
+            response.body.replaceAll('_', ' ').replaceAll('"', '');
+
+        return prediction; // Return prediction value
       } else {
         print('Failed to upload image');
-        return 'Failed to upload image';
+        return 'null'; // Return null if prediction failed
       }
     } catch (e) {
       print('Error uploading image: $e');
-      return 'Error uploading image';
+      return 'null'; // Return null if prediction failed
     }
   }
 
-  List<Widget> getMyPlants() {
-    List<Widget> weatherCards = [];
+  Future<List<Map<String, String>>> _loadPlantData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? plantDataJson = prefs.getString('PlantData');
+    if (plantDataJson != null) {
+      List<dynamic> plantDataList = jsonDecode(plantDataJson);
+      return plantDataList
+          .map((data) => Map<String, String>.from(data))
+          .toList();
+    }
+    return [];
+  }
 
-    for (var i = 0; i < 10; i++) {
+  Future<List<Widget>> getMyPlants() async {
+    List<Widget> weatherCards = [];
+    List<Map<String, String>> plantData = await _loadPlantData();
+
+    for (var data in plantData) {
+      String imagePath = data['imagePath']!;
+      String prediction = data['prediction']!;
+
       weatherCards.add(
         Padding(
           padding: const EdgeInsets.all(5),
@@ -214,20 +203,28 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    'https://picsum.photos/seed/711/600',
+                  child: Image.file(
+                    File(imagePath),
                     width: 130,
                     height: 130,
                     fit: BoxFit.cover,
                   ),
                 ),
-                const Text(
-                  'Hello World',
-                  style: TextStyle(
+                Padding(
+                  padding: const EdgeInsets.all(
+                      8.0), // Added padding for better text visibility
+                  child: Text(
+                    prediction,
+                    style: const TextStyle(
                       color: Colors.black,
                       fontFamily: "Readex Pro",
-                      letterSpacing: 0),
-                )
+                      letterSpacing: 0,
+                    ),
+                    maxLines: 2, // Limiting to 2 lines
+                    overflow: TextOverflow
+                        .ellipsis, // Making sure text wraps instead of being clipped
+                  ),
+                ),
               ],
             ),
           ),
@@ -278,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             AsyncSnapshot<void> snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
-                            return CircularProgressIndicator(); // Display a loading indicator while waiting for the API call to complete
+                            return const CircularProgressIndicator(); // Display a loading indicator while waiting for the API call to complete
                           } else if (snapshot.hasError) {
                             return Text('Error: ${snapshot.error}');
                           } else {
@@ -411,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             opacity: 0.4,
                             child: Container(
                               width: MediaQuery.sizeOf(context).width * 0.95,
-                              height: 230,
+                              height: 300,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
                                   colors: [Color(0xFF673AB7), Colors.blue],
@@ -425,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           Container(
                             width: MediaQuery.sizeOf(context).width * 0.95,
-                            height: 230,
+                            height: 300,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -444,14 +441,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                         letterSpacing: 0),
                                   ),
                                 ),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
-                                      children: getMyPlants()),
-                                )
+                                FutureBuilder<List<Widget>>(
+                                  future: getMyPlants(),
+                                  builder: (BuildContext context,
+                                      AsyncSnapshot<List<Widget>> snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    } else if (snapshot.hasError) {
+                                      return Center(
+                                          child:
+                                              Text('Error: ${snapshot.error}'));
+                                    } else if (!snapshot.hasData ||
+                                        snapshot.data!.isEmpty) {
+                                      return const Center(
+                                          child: Text('No plants found.'));
+                                    } else {
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.max,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: snapshot.data!,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
                               ],
                             ),
                           )
@@ -568,25 +586,40 @@ class _HomeScreenState extends State<HomeScreen> {
                                         onTap: () {
                                           showDialog(
                                             context: context,
-                                            builder: (BuildContext context) {
+                                            builder:
+                                                (BuildContext dialogContext) {
                                               return AlertDialog(
                                                 title: const Text(
-                                                    'AlertDialog Title'),
+                                                  'Upload Image',
+                                                  style: TextStyle(
+                                                      color: Colors.white),
+                                                ),
                                                 content:
                                                     const SingleChildScrollView(
                                                   child: ListBody(
                                                     children: <Widget>[
                                                       Text(
-                                                          'This is a demo alert dialog.'),
+                                                        'Provide a photo of the plant',
+                                                        style: TextStyle(
+                                                            color:
+                                                                Colors.white),
+                                                      ),
                                                       Text(
-                                                          'Would you like to approve of this message?'),
+                                                        'You can choose any Options for uploading ',
+                                                        style: TextStyle(
+                                                            fontSize: 15,
+                                                            color:
+                                                                Colors.white),
+                                                      ),
                                                     ],
                                                   ),
                                                 ),
                                                 actions: <Widget>[
                                                   TextButton(
-                                                    onPressed:
-                                                        capturePhotoFromCamera,
+                                                    onPressed: () {
+                                                      capturePhotoFromCamera(
+                                                          dialogContext);
+                                                    },
                                                     child: const Row(
                                                       mainAxisSize:
                                                           MainAxisSize.max,
@@ -594,15 +627,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                                           MainAxisAlignment
                                                               .center,
                                                       children: [
-                                                        Icon(Icons
-                                                            .camera_outlined),
-                                                        Text('Camera'),
+                                                        Icon(
+                                                          Icons.camera_outlined,
+                                                          color: Colors
+                                                              .lightGreenAccent,
+                                                        ),
+                                                        VerticalDivider(),
+                                                        Text(
+                                                          'Camera',
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .lightGreenAccent),
+                                                        ),
                                                       ],
                                                     ),
                                                   ),
                                                   TextButton(
-                                                    onPressed:
-                                                        uploadPhotoFromGallery,
+                                                    onPressed: () {
+                                                      uploadPhotoFromGallery(
+                                                          dialogContext);
+                                                    },
                                                     child: const Row(
                                                       mainAxisSize:
                                                           MainAxisSize.max,
@@ -613,12 +657,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         Icon(
                                                           Icons.upload_rounded,
                                                           size: 20,
+                                                          color: Colors
+                                                              .lightGreenAccent,
                                                         ),
-                                                        Text('Gallery')
+                                                        VerticalDivider(),
+                                                        Text(
+                                                          'Gallery',
+                                                          style: TextStyle(
+                                                              color: Colors
+                                                                  .lightGreenAccent),
+                                                        )
                                                       ],
                                                     ),
                                                   )
                                                 ],
+                                                backgroundColor: Colors.black,
                                               );
                                             },
                                           );
@@ -646,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   fontFamily: "Readex Pro",
                                                   letterSpacing: 0,
                                                   color: fontColor),
-                                            )
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -663,20 +716,6 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message_outlined),
-            label: 'Messages',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }
