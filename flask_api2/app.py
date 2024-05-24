@@ -10,8 +10,8 @@ CORS(app)
 # Load model and processor
 processor = AutoImageProcessor.from_pretrained("plantdoctor/swin-tiny-patch4-window7-224-plant-doctor")
 model = AutoModelForImageClassification.from_pretrained("plantdoctor/swin-tiny-patch4-window7-224-plant-doctor")
-processor2=AutoImageProcessor.from_pretrained("nancyalarabawy/segformer-finetuned-segments-plantleafdisease-may-15")
-model2=SegformerForSemanticSegmentation.from_pretrained("nancyalarabawy/segformer-finetuned-segments-plantleafdisease-may-15")
+# processor2=AutoImageProcessor.from_pretrained("nancyalarabawy/segformer-finetuned-segments-plantleafdisease-may-15")
+# model2=SegformerForSemanticSegmentation.from_pretrained("nancyalarabawy/segformer-finetuned-segments-plantleafdisease-may-15")
 # Class label reference dictionary
 ref = {
     0: 'Apple___Apple_scab', 1: 'Apple___Black_rot', 2: 'Apple___Cedar_apple_rust', 3: 'Apple___healthy',

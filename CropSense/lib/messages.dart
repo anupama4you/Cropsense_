@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 
@@ -78,13 +79,20 @@ class _MessagesState extends State<Messages> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Chat History',
-          style: TextStyle(color: Colors.black),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset('assets/images/AppBar-logo.svg', height: 24),
+            const SizedBox(
+              width: 8.0,
+            ),
+            const Text(
+              "CropSense",
+              style: TextStyle(color: Colors.black),
+            )
+          ],
         ),
         backgroundColor: Colors.white,
-        elevation: 2,
-        centerTitle: true,
       ),
       body: ListView.builder(
         itemCount: _allChatThreads.length,

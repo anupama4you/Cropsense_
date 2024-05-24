@@ -62,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
+    getMyPlants();
   }
 
   Future<void> setWeatherData() async {
@@ -478,7 +479,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     } else if (!snapshot.hasData ||
                                         snapshot.data!.isEmpty) {
                                       return const Center(
-                                          child: Text('No plants found.'));
+                                          child: Text(
+                                        'No plants found.',
+                                        style: TextStyle(
+                                            fontFamily: "Readex Pro",
+                                            color: Colors.white),
+                                      ));
                                     } else {
                                       return SingleChildScrollView(
                                         scrollDirection: Axis.horizontal,

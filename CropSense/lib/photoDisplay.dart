@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert'; // For jsonEncode and jsonDecode
 import 'package:cropsense/chat_screen_2.dart';
@@ -37,12 +38,21 @@ class PlantDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Plant Display',
-          style: TextStyle(color: Colors.white),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset('assets/images/AppBar-logo.svg', height: 24),
+            const SizedBox(
+              width: 8.0,
+            ),
+            const Text(
+              "CropSense",
+              style: TextStyle(color: Colors.black),
+            )
+          ],
         ),
-        backgroundColor: Colors.black,
-        centerTitle: true,
+        backgroundColor: Colors.white,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [

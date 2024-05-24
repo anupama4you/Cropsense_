@@ -4,6 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatPage extends StatefulWidget {
@@ -163,7 +164,10 @@ class _ChatPageState extends State<ChatPage> {
         ],
       ),
     );
-
+    if (result == true) {
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
+    }
     // If the user dismisses the dialog, return false
     // Otherwise, return the user's choice
     return result ?? false;
